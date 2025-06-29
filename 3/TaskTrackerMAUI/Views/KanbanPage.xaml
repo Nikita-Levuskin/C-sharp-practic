@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:TaskTrackerMAUI.ViewModels"
+             xmlns:models="clr-namespace:TaskTrackerMAUI.Models"
+             x:Class="TaskTrackerMAUI.Views.KanbanPage"
+             Title="{Binding Title}">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Создать" Command="{Binding NavigateToAddTaskCommand}" IconImageSource="{FontImage FontFamily=OpenSansSemibold, Glyph=+}"/>
+    </ContentPage.ToolbarItems>
+
+    <Grid RowDefinitions="Auto, *" BackgroundColor="{AppThemeBinding Light={StaticResource WhiteSmoke}, Dark={StaticResource WindowCaptionBackground}}">
+
+        <VerticalStackLayout Grid.Row="0" Padding="10" Spacing="8" BackgroundColor="{AppThemeBinding Light={StaticResource Gainsboro}, Dark={StaticResource DesktopUtilityBackground}}">
+            <SearchBar Placeholder="Поиск задач..." Text="{Binding SearchText, Mode=TwoWay}" />
+
+            <Grid ColumnDefinitions="Auto, *, Auto, *" ColumnSpacing="10" RowDefinitions="Auto, Auto" RowSpacing="5">
+                <Label Grid.Row="0" Grid.Column="0" Text="Приоритет:" VerticalOptions="Center"/>
+                <Picker Grid.Row="0" Grid.Column="1" ItemsSource="{Binding PriorityFilterOptions}" SelectedItem="{Binding SelectedPriorityFilter, Mode=TwoWay}" ItemDisplayBinding="{Binding DisplayName}"/>
+
+                <Label Grid.Row="0" Grid.Column="2" Text="Категория:" VerticalOptions="Center"/>
+                <Picker Grid.Row="0" Grid.Column="3" ItemsSource="{Binding CategoryFilterOptions}" ItemDisplayBinding="{Binding Name}" SelectedItem="{Binding SelectedCategoryFilter, Mode=TwoWay}"/>
+
+                <Label Grid.Row="1" Grid.Column="0" Text="Сортировка:" VerticalOptions="Center"/>
+                <Picker Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSortOption, Mode=TwoWay}"/>
+            </Grid>
+        </VerticalStackLayout>
+
+        <Grid Grid.Row="1">
+            <Grid Padding="10" ColumnSpacing="10" RowDefinitions="Auto, *" IsVisible="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Label Grid.Row="0" Grid.Column="0" Text="Новые" FontSize="Large" FontAttributes="Bold" HorizontalOptions="Center"/>
+                <Label Grid.Row="0" Grid.Column="1" Text="В работе" FontSize="Large" FontAttributes="Bold" HorizontalOptions="Center"/>
+                <Label Grid.Row="0" Grid.Column="2" Text="На проверке" FontSize="Large" FontAttributes="Bold" HorizontalOptions="Center"/>
+                <Label Grid.Row="0" Grid.Column="3" Text="Завершенные" FontSize="Large" FontAttributes="Bold" HorizontalOptions="Center"/>
+                <Border Grid.Row="1" Grid.Column="0" StrokeThickness="1" Stroke="LightGray" Padding="5" Margin="0,5,0,0" x:Name="NewTasksDropZone">
+                    <Border.GestureRecognizers>
+                        <DropGestureRecognizer AllowDrop="True" DragOver="DropGestureRecognizer_OnDragOver" DragLeave="DropGestureRecognizer_OnDragLeave" Drop="NewTasks_Drop"/>
+                    </Border.GestureRecognizers>
+                    <CollectionView ItemsSource="{Binding NewTasks}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:TaskItem">
+                                <Frame Padding="10" Margin="5" CornerRadius="5" BorderColor="DimGray" HasShadow="True">
+                                    <Frame.Triggers>
+                                        <DataTrigger TargetType="Frame" Binding="{Binding IsOverdue}" Value="True">
+                                            <Setter Property="BorderColor" Value="{StaticResource OverdueTaskRed}"/>
+                                        </DataTrigger>
+                                    </Frame.Triggers>
+                                    <Frame.GestureRecognizers>
+                                        <DragGestureRecognizer CanDrag="True" DragStarting="DragGestureRecognizer_OnDragStarting"/>
+                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:KanbanViewModel}}, Path=NavigateToEditTaskCommand}" CommandParameter="{Binding .}"/>
+                                    </Frame.GestureRecognizers>
+                                    <Grid RowSpacing="2" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                                        <Label Grid.Row="0" Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Row="1" Text="{Binding Description}" FontSize="Small" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Row="2" Text="{Binding DueDate, StringFormat='Срок: {0:dd.MM.yyyy HH:mm}'}" FontSize="Micro" IsVisible="{Binding DueDate, TargetNullValue=False, FallbackValue=False}"/>
+                                        <Label Grid.Row="3" Text="{Binding CategoryName, StringFormat='Категория: {0}'}" FontSize="Micro"/>
+                                        <Label Grid.Row="4" Text="{Binding Priority, Converter={StaticResource PriorityToStringConverter}, StringFormat='Приоритет: {0}'}" FontSize="Micro"/>
+                                    </Grid>
+                                </Frame>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="1" StrokeThickness="1" Stroke="LightGray" Padding="5" Margin="0,5,0,0" x:Name="InProgressTasksDropZone">
+                    <Border.GestureRecognizers>
+                        <DropGestureRecognizer AllowDrop="True" DragOver="DropGestureRecognizer_OnDragOver" DragLeave="DropGestureRecognizer_OnDragLeave" Drop="InProgressTasks_Drop"/>
+                    </Border.GestureRecognizers>
+                    <CollectionView ItemsSource="{Binding InProgressTasks}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:TaskItem">
+                                <Frame Padding="10" Margin="5" CornerRadius="5" BorderColor="DimGray" HasShadow="True">
+                                    <Frame.Triggers>
+                                        <DataTrigger TargetType="Frame" Binding="{Binding IsOverdue}" Value="True">
+                                            <Setter Property="BorderColor" Value="{StaticResource OverdueTaskRed}"/>
+                                        </DataTrigger>
+                                    </Frame.Triggers>
+                                    <Frame.GestureRecognizers>
+                                        <DragGestureRecognizer CanDrag="True" DragStarting="DragGestureRecognizer_OnDragStarting"/>
+                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:KanbanViewModel}}, Path=NavigateToEditTaskCommand}" CommandParameter="{Binding .}"/>
+                                    </Frame.GestureRecognizers>
+                                    <Grid RowSpacing="2" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                                        <Label Grid.Row="0" Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Row="1" Text="{Binding Description}" FontSize="Small" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Row="2" Text="{Binding DueDate, StringFormat='Срок: {0:dd.MM.yyyy HH:mm}'}" FontSize="Micro" IsVisible="{Binding DueDate, TargetNullValue=False, FallbackValue=False}"/>
+                                        <Label Grid.Row="3" Text="{Binding CategoryName, StringFormat='Категория: {0}'}" FontSize="Micro"/>
+                                        <Label Grid.Row="4" Text="{Binding Priority, Converter={StaticResource PriorityToStringConverter}, StringFormat='Приоритет: {0}'}" FontSize="Micro"/>
+                                    </Grid>
+                                </Frame>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="2" StrokeThickness="1" Stroke="LightGray" Padding="5" Margin="0,5,0,0" x:Name="OnReviewTasksDropZone">
+                    <Border.GestureRecognizers>
+                        <DropGestureRecognizer AllowDrop="True" DragOver="DropGestureRecognizer_OnDragOver" DragLeave="DropGestureRecognizer_OnDragLeave" Drop="OnReviewTasks_Drop"/>
+                    </Border.GestureRecognizers>
+                    <CollectionView ItemsSource="{Binding OnReviewTasks}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:TaskItem">
+                                <Frame Padding="10" Margin="5" CornerRadius="5" BorderColor="DimGray" HasShadow="True">
+                                    <Frame.Triggers>
+                                        <DataTrigger TargetType="Frame" Binding="{Binding IsOverdue}" Value="True">
+                                            <Setter Property="BorderColor" Value="{StaticResource OverdueTaskRed}"/>
+                                        </DataTrigger>
+                                    </Frame.Triggers>
+                                    <Frame.GestureRecognizers>
+                                        <DragGestureRecognizer CanDrag="True" DragStarting="DragGestureRecognizer_OnDragStarting"/>
+                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:KanbanViewModel}}, Path=NavigateToEditTaskCommand}" CommandParameter="{Binding .}"/>
+                                    </Frame.GestureRecognizers>
+                                    <Grid RowSpacing="2" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                                        <Label Grid.Row="0" Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Row="1" Text="{Binding Description}" FontSize="Small" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Row="2" Text="{Binding DueDate, StringFormat='Срок: {0:dd.MM.yyyy HH:mm}'}" FontSize="Micro" IsVisible="{Binding DueDate, TargetNullValue=False, FallbackValue=False}"/>
+                                        <Label Grid.Row="3" Text="{Binding CategoryName, StringFormat='Категория: {0}'}" FontSize="Micro"/>
+                                        <Label Grid.Row="4" Text="{Binding Priority, Converter={StaticResource PriorityToStringConverter}, StringFormat='Приоритет: {0}'}" FontSize="Micro"/>
+                                    </Grid>
+                                </Frame>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Border>
+                <Border Grid.Row="1" Grid.Column="3" StrokeThickness="1" Stroke="LightGray" Padding="5" Margin="0,5,0,0" x:Name="CompletedTasksDropZone">
+                    <Border.GestureRecognizers>
+                        <DropGestureRecognizer AllowDrop="True" DragOver="DropGestureRecognizer_OnDragOver" DragLeave="DropGestureRecognizer_OnDragLeave" Drop="CompletedTasks_Drop"/>
+                    </Border.GestureRecognizers>
+                    <CollectionView ItemsSource="{Binding CompletedTasks}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:TaskItem">
+                                <Frame Padding="10" Margin="5" CornerRadius="5" BorderColor="DimGray" HasShadow="True">
+                                    <Frame.Triggers>
+                                        <DataTrigger TargetType="Frame" Binding="{Binding IsOverdue}" Value="True">
+                                            <Setter Property="BorderColor" Value="{StaticResource OverdueTaskRed}"/>
+                                        </DataTrigger>
+                                    </Frame.Triggers>
+                                    <Frame.GestureRecognizers>
+                                        <DragGestureRecognizer CanDrag="True" DragStarting="DragGestureRecognizer_OnDragStarting"/>
+                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:KanbanViewModel}}, Path=NavigateToEditTaskCommand}" CommandParameter="{Binding .}"/>
+                                    </Frame.GestureRecognizers>
+                                    <Grid RowSpacing="2" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                                        <Label Grid.Row="0" Text="{Binding Title}" FontAttributes="Bold" LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Row="1" Text="{Binding Description}" FontSize="Small" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Row="2" Text="{Binding DueDate, StringFormat='Срок: {0:dd.MM.yyyy HH:mm}'}" FontSize="Micro" IsVisible="{Binding DueDate, TargetNullValue=False, FallbackValue=False}"/>
+                                        <Label Grid.Row="3" Text="{Binding CategoryName, StringFormat='Категория: {0}'}" FontSize="Micro"/>
+                                        <Label Grid.Row="4" Text="{Binding Priority, Converter={StaticResource PriorityToStringConverter}, StringFormat='Приоритет: {0}'}" FontSize="Micro"/>
+                                    </Grid>
+                                </Frame>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Border>
+            </Grid>
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HorizontalOptions="Center" VerticalOptions="Center"/>
+        </Grid>
+    </Grid>
+</ContentPage>

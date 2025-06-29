@@ -1,0 +1,27 @@
+﻿<?xml version = "1.0" encoding = "UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:HelloMauiApp"
+             x:Class="HelloMauiApp.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <Color x:Key="AppAccentColor">#FF8C00</Color>
+            <x:String x:Key="GlobalAppName">My MAUI App</x:String>
+            <x:Double x:Key="DefaultFontSize">16</x:Double>
+
+            <Style x:Key="GlobalButtonStyle" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryColor}"/>
+                <Setter Property="TextColor" Value="White"/>
+                <Setter Property="CornerRadius" Value="8"/>
+                <Setter Property="Padding" Value="14,10"/>
+                <Setter Property="FontAttributes" Value="Bold"/>
+            </Style>
+
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
